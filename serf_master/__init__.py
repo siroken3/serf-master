@@ -6,7 +6,12 @@ import logging
 class SerfHandler(object):
     def __init__(self):
         self.name = os.environ['SERF_SELF_NAME']
-        self.role = os.environ.get('SERF_TAG_ROLE') or os.environ.get('SERF_SELF_ROLE')
+        _role = os.environ.get('SERF_SELF_ROLE')
+        self.tag_key_value = [{'SERF_TAG_ROLE': _role}] if _role else []
+        self.tag_key_value = self.tag_key_value.extend(
+            [k[len('SERF_TAG_'):] + '_' + v for k, v
+             in os.environ.items() if k.startswith('SERF_TAG_')]
+        )
         self.logger = logging.getLogger(type(self).__name__)
         if os.environ['SERF_EVENT'] == 'user':
             self.event = os.environ['SERF_USER_EVENT']
@@ -23,15 +28,21 @@ class SerfHandlerProxy(SerfHandler):
         super(SerfHandlerProxy, self).__init__()
         self.handlers = {}
 
-    def register(self, role, handler):
-        self.handlers[role] = handler
+    def register(self, tag, handler):
+        if type(tag) == dict:
+            for k, v in tag.items():
+                self.handlers[k + '_' + v] = handler
+        else:
+            # for backward compatibility
+            self.handlers['ROLE_' + tag] = handler
 
     def get_klass(self):
         klass = False
-        if self.role in self.handlers:
-            klass = self.handlers[self.role]
-        elif 'default' in self.handlers:
-            klass = self.handlers['default']
+        for k_v in self.tag_key_value:
+            if k_v in self.handlers:
+                klass = self.handlers[k_v]
+            elif 'default' in self.handlers:
+                klass = self.handlers['default']
         return klass
 
     def run(self):
