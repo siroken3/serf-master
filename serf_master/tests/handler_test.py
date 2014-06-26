@@ -65,6 +65,7 @@ class TestSerfHandlerRoleOverloading:
         assert len(self.handler.handlers) == 0
 
     def test_role_set_from_env(self):
+        print self.handler.role
         assert self.handler.role == 'bob'
 
 
@@ -116,6 +117,7 @@ class TestSerfHandlerProxyStandardEvent:
             'SERF_SELF_NAME': 'null',
             'SERF_SELF_ROLE': 'web',
             'SERF_EVENT': 'member-join',
+            'SERF_TAG_ENV': 'production',
         }
         self.handler = SerfHandlerProxy()
         self.sample = SerfHandler()
@@ -131,6 +133,22 @@ class TestSerfHandlerProxyStandardEvent:
     def test_role_registration(self):
         self.handler.register('web', self.sample)
         assert len(self.handler.handlers) == 1
-        assert 'web' in self.handler.handlers
+        assert 'ROLE_web' in self.handler.handlers
+        self.handler.run()
+        self.sample.member_join.assert_called_with()
+
+    def test_role_registration_dict(self):
+        role_tag = {'ROLE':'web'}
+        self.handler.register(role_tag, self.sample)
+        assert len(self.handler.handlers) == 1
+        assert 'ROLE_web' in self.handler.handlers
+        self.handler.run()
+        self.sample.member_join.assert_called_with()
+
+    def test_tag_registration(self):
+        tag = {'Env': 'production'}
+        self.handler.register(tag, self.sample)
+        assert len(self.handler.handlers) == 1
+        assert 'ENV_production' in self.handler.handlers
         self.handler.run()
         self.sample.member_join.assert_called_with()
