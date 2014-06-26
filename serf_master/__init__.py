@@ -8,25 +8,25 @@ class SerfHandler(object):
     def __init__(self):
         self.name = os.environ['SERF_SELF_NAME']
         _role = os.environ.get('SERF_SELF_ROLE')
-        self.tag_key_value = [{'SERF_TAG_ROLE': _role}] if _role else []
+	#print "{0}:{2}: SERF_SELF_ROLE = '{1}'".format(self.name, _role, type(self).__name__)
+        self.tag_key_value = ['ROLE_' + _role] if len(_role) > 0 else []
         _prefix = 'SERF_TAG_'
-        self.tag_key_value = self.tag_key_value.extend(
-            [k[len(_prefix):] + '_' + v for k, v
-             in os.environ.items() if k.startswith(_prefix)]
-        )
+	for k, v in os.environ.items():
+            if k.startswith(_prefix):
+	        self.tag_key_value.append(k[len(_prefix):] + '_' + v)
         self.logger = logging.getLogger(type(self).__name__)
         if os.environ['SERF_EVENT'] == 'user':
             self.event = os.environ['SERF_USER_EVENT']
         else:
             self.event = os.environ['SERF_EVENT'].replace('-', '_')
+	#print self.tag_key_value
 
     def log(self, message):
         self.logger.info(message)
 
 
 class _NopHandler(SerfHandler):
-    def nop(self):
-        pass
+    pass
 
 
 class SerfHandlerProxy(SerfHandler):
@@ -49,8 +49,11 @@ class SerfHandlerProxy(SerfHandler):
         for k_v in self.handlers:
             if k_v in self.tag_key_value:
                 klasses.append(self.handlers[k_v])
-            else:
-                klasses.append(self.default_handler)
+        if not klasses:
+            klasses.append(self.default_handler)
+        #print "self.handlers = {0}".format(self.handlers)
+        #print "self.tag_key_value = {0}".format(self.tag_key_value)
+	#print "{0}:{1}".format(type(self).__name__, klasses)
         return klasses
 
     def run(self):
@@ -60,6 +63,6 @@ class SerfHandlerProxy(SerfHandler):
         else:
             try:
                 for klass in klasses:
-                    getattr(klass, self.event, _NopHandler.nop)()
+                    getattr(klass, self.event)()
             except AttributeError:
                 self.log("event not implemented by class")
