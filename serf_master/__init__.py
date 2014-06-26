@@ -24,22 +24,18 @@ class SerfHandler(object):
         self.logger.info(message)
 
 
-class _NopHandler(SerfHandler):
-    def nop(self):
-        pass
-
-
 class SerfHandlerProxy(SerfHandler):
 
-    def __init__(self, default=_NopHandler()):
+    def __init__(self):
         super(SerfHandlerProxy, self).__init__()
         self.handlers = {}
-        self.default_handler = default
 
     def register(self, tag, handler):
         if type(tag) == dict:
             for k, v in tag.items():
                 self.handlers[k + '_' + v] = handler
+        elif type(tag) == str and tag == 'default':
+            self.handlers[tag] = handler
         else:
             # for backward compatibility
             self.handlers['ROLE_' + tag] = handler
