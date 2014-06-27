@@ -37,6 +37,7 @@ class SerfHandlerProxy(SerfHandler):
             for k, v in tag.items():
                 self.handlers[k.upper() + '_' + v] = handler
         elif tag == 'default':
+            # for backward compatibility
             self.handlers[tag] = handler
         else:
             # for backward compatibility

@@ -152,3 +152,12 @@ class TestSerfHandlerProxyStandardEvent:
         assert 'ENV_production' in self.handler.handlers
         self.handler.run()
         self.sample.member_join.assert_called_with()
+
+    def test_tag_registration_multi(self):
+        tag = {'Env':'production','ROLE':'web'}
+        self.handler.register(tag, self.sample)
+        assert len(self.handler.handlers) == 2
+        assert 'ENV_production' in self.handler.handlers
+        assert 'ROLE_web' in self.handler.handlers
+        self.handler.run()
+        self.sample.member_join.assert_called_with()
